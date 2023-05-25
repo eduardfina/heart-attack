@@ -1,0 +1,167 @@
+---
+title: 'Pràctica 2: Com realitzar la neteja i anàlisi de dades?'
+author: "Marc López Vila, Eduard López i Fina"
+date: "`r format(Sys.Date(),"%e de %B %Y")`"
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '2'
+  html_document:
+    toc: yes
+    number_sections: yes
+    toc_depth: 2
+tuthor: Mireia Calvo González
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+install.packages('caret', repos = "http://cran.us.r-project.org")
+```
+
+```{r load_libraries, include=FALSE}
+library(knitr)
+library(caret)
+```
+
+****
+# Descripció del dataset.
+****
+
+Aquest dataset és interessant perquè ens proporciona dades complexes que ens ajudaran a poder preveure quins pacients són propensos a tenir atacs de cor. Aquest dataset ha estat extret de kaggle i és el que ens dona d'exemple la pràctica.
+
+Com podem veure aquest dataset ens proporciona dades interessants de 303 pacients com el dolor del pit, pressió sanguínea, colesterol i màxim de pulsacions entre d'altres. També ens proporciona dades de la saturació d'O2 en un dataset individual.
+
+En aquesta pràctica intentarem unificar els dos datasets, netejar-los i tractarem d'estimar un model que a partir de les dades pugui preveure possibles atacs de cor.
+
+****
+# Integració i selecció
+****
+
+Primerament carreguem els dos datasets.
+
+``` {r chunk1.1}
+heart_data <- read.csv("../data/heart.csv");
+o2_data <- read.csv("../data/o2Saturation.csv");
+
+nrow(heart_data);
+nrow(o2_data);
+```
+
+Un cop carregats els fitxers podem apreciar que la mida dels dos és diferent, això sumat a que no tenim un identificador de persona que ens ajudi a relacionar les dades dels dos datasets fa que no tinguem manera de saber com està relacionada la saturació o2 amb el dataset principal. Per tant hem optat per no integrar les dades del fitxer o2 per l'anàlisi.
+
+En quant al dataset heart_data ja que no hem trobat cap camp calculat hem optat per incloure totes les dades actuals i seleccionar més endavant quines utilitzar segons l'anàlisi que volguem fer.
+
+****
+# Neteja de les dades.
+****
+
+Primerament analitzem les dades que contenen zeros o elements buits, per fer-ho seleccionem totes les variables numèriques no factorial on el zero no sigui una opció.
+
+Obtenim el llistat de les següents dades:
+
+* Age. És l'edat de la persona. Hi han `r length(which(heart_data$age==0))` persones que tenen 0 anys.
+* Sex. És el sexe de la persona. Està codificat de forma factorial amb 0 i 1 segons sexe.
+* Cp. És el nivell de mal de pit. Està codificat de forma factorial de 0-3 segons dolor.
+* Trtbps. És la pressió arterial en repòs. Hi han `r length(which(heart_data$trtbps==0))` persones amb pressió arterial 0.
+* Chol. És el colesterol de la persona. Hi han `r length(which(heart_data$chol==0))` persones amb colesterol 0.
+* Fbs. És el sucre en sang. Està codificat de forma factorial, 1 si fbs>120 i 0 en cas contrari.
+* Restecg. Són els resultats electrocardiogràfics. Estan codificats de forma factorial de 0-2 segons gravetat.
+* Thalacc. És el màxim de pulsacions. Hi han `r length(which(heart_data$thalacc==0))` persones que tenen pulsació 0.
+* Exng. Ens retorna si la persona té angina induïda per exercici. Està codificat de forma factorial amb 0 en cas de que no tingui angina i 1 en cas de que tingui angina.
+* Oldpeak. És la depressió del ST induïda per l'exercici en relació amb el repòs. En aquest cas el valor pot ser 0.
+* Slp. És el pendent del segment ST de l'exercici màxim. Està codificat de forma factorial de 0-2 segons pendent.
+* Caa. És el nombre de vasos cardíacs. Està codificat de forma factorial de 0-3.
+* Thall. És el grau de talassèmia. Està codificat de forma factorial de 0-3 segons grau.
+* Output. És el diagnòstic final. Està codificat de forma factorial amb 1 si té probabilitats de tenir un atac de cor i 0 si no.
+
+Com podem veure no tenim cap dada que contingui 0 per falta d'informació o elements buits.
+
+
+A continuació farem un estudi dels outliers, per detectar-los creem la funció get_outliers:
+
+```{r chunk2.1}
+get_outliers <- function(x) {
+  # Calculem la mitjana i la desviació estàndard
+  mean = mean(x)
+  std = sd(x)
+
+  # Calculem el tmin i el tmax
+  Tmin = mean-(3*std)
+  Tmax = mean+(3*std)
+
+  # Trobem els outliers
+  x[which(x < Tmin | x > Tmax)]
+}
+```
+
+Un cop tenim la funció la utilitzem per trobar els outliers existents.
+
+```{r chunk2.2}
+cp_outliers <- get_outliers(heart_data$cp);
+chol_outliers <- get_outliers(heart_data$chol);
+
+for (i in colnames(heart_data)) {
+  sprintf("La columna %s té els següents outliers: ", i)
+  outliers <- get_outliers(heart_data[[i]])
+  
+  if(length(outliers) != 0) {
+    cat(sprintf("La columna %s té els següents outliers: ", i), outliers, "\n")
+  }
+}
+
+```
+Analitzant les dades detectades com a outliers arribem a la conclusió de que cap és un valor extrem, totes les dades entren dins la normalitat. 
+
+****
+# Anàlisi de les dades.
+****
+
+Un dels anàlisi que podem fer és una regressió, veient que la nostra variable dependent (output) és dicotòmica utilitzarem la regressió logística enlloc de lineal.
+
+Per comprovar l'efectivitat del model resultant dividirem les dades en dos conjunts, un conjunt de training (80% de les dades) i un conjunt de testing (20% de les dades). A més també ens caldrà fer un cast de la variable output a factorial.
+
+```{r chunk3.1}
+# Seleccionem una seed per poder reproduir els conjunts
+set.seed(15)
+
+# Fem el cast a factorial
+heart_data$output <- factor(heart_data$output)
+
+# Creem els conjunts de training i de test
+train_index <- createDataPartition(y=heart_data$output, p=0.8, list=FALSE)
+training <- heart_data[train_index, ]
+testing <- heart_data[-train_index, ]
+```
+
+Un cop tenim els conjunts definits i la variable output com a factorial creem el model amb les dades de training. 
+Després d'estar estudiant les variables hem arribat a la conclusió que les millors variables independents seran sex, cp, exng, oldpeak, slp, caa i thall.
+
+```{r chunk2.2.1}
+model <- glm(formula = output~sex+cp+exng+oldpeak+slp+caa+thall,
+                 family = binomial,
+                 data = heart_data)
+
+summary(model)
+```
+
+Veiem amb la informació del model com els valors p(Pr(>|z|)) són tots inferiors a 0.05, mostrant-nos així que totes són significativament estadístiques i aporten al model.
+
+A continuació fem una matriu de confusió amb el conjunt de testing.
+
+```{r chunk2.4.1}
+# Obtenim els valors predits
+predicted_values <- ifelse(predict(model, newdata = testing, type = "response") >= 0.5, 1, 0)
+predicted_values <- factor(predicted_values, levels = c("0", "1"))
+
+# Recolectem els valors reals
+real_values <- factor(testing$output, levels = c("0", "1"))
+
+# Calculem la matriu de confusió
+confusion_matrix <- confusionMatrix(predicted_values, real_values)
+confusion_matrix
+```
+
+Veiem com aquest model ha encertat un 83.33% de les dades de testing i podem dir amb un 95% de certesa que la precisió d'aquest model estarà entre un 71.48% i 91.71%.
+
+També tenim altres dades com la sensibilitat que ens mostra que s'ha encertat un 77.78% dels negatius o la especificitat que ens mostra que s'ha encertat un 87.88% dels positius (Entenent negatiu com a output 0 i positiu com a output 1).
+
