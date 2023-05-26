@@ -1,45 +1,78 @@
 ---
 title: 'Pràctica 2: Com realitzar la neteja i anàlisi de dades?'
-author: "Marc López Vila, Eduard López i Fina"
-date: "`r format(Sys.Date(),"%e de %B %Y")`"
+author: "Autor: Marc López Vila, Eduard López i Fina"
+date: "Juny, 2023"
 output:
-  pdf_document:
-    toc: yes
-    toc_depth: '2'
   html_document:
-    toc: yes
+    highlight: default
     number_sections: yes
+    theme: cosmo
+    toc: yes
     toc_depth: 2
-tuthor: Mireia Calvo González
+  word_document: default
+  pdf_document:
+    highlight: zenburn
+    toc: yes
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-install.packages('caret', repos = "http://cran.us.r-project.org")
 ```
 
-```{r load_libraries, include=FALSE}
-library(knitr)
-library(caret)
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+if (!require('ggplot2')) install.packages('ggplot2'); library('ggplot2')
+if(!require('Rmisc')) install.packages('Rmisc'); library('Rmisc')
+if(!require('dplyr')) install.packages('dplyr'); library('dplyr')
+if(!require('xfun')) install.packages('xfun'); library('xfun')
+if(!require('lubridate')) install.packages('lubridate'); library('lubridate')
+if(!require("corrplot")) install.packages("corrplot"); library("corrplot")
+if (!require('tidyverse')) install.packages('tidyverse'); library('tidyverse')
+if (!require('factoextra')) install.packages('factoextra'); library('factoextra')
+if (!require('Stat2Data')) install.packages('Stat2Data'); library('Stat2Data')
+if (!require('cluster')) install.packages('cluster'); library('cluster')
+if (!require('fpc')) install.packages('fpc'); library('fpc')
+if (!require('gridExtra')) install.packages('gridExtra'); library('gridExtra')
+if (!require('dbscan')) install.packages('dbscan'); library('dbscan')
+if (!require('knitr')) install.packages('knitr'); library('knitr')
+if (!require('grid')) install.packages('grid'); library('grid')
+if (!require('C50')) install.packages('C50'); library('C50')
+if (!require('ggpubr')) install.packages('ggpubr'); library('ggpubr')
+if (!require('DescTools')) install.packages('DescTools'); library('DescTools')
+if (!require('gmodels')) install.packages('gmodels'); library('gmodels')
+if (!require('GGally')) install.packages('GGally'); library('GGally')
+
+if (!require('randomForest')) install.packages('randomForest'); library('randomForest')
+if (!require('iml')) install.packages('iml'); library('iml')
+if (!require('patchwork')) install.packages('patchwork'); library('patchwork')
+
+if (!require('rattle')) install.packages('rattle'); library('rattle')
+if (!require('rpart.plot')) install.packages('rpart.plot'); library('rpart.plot')
+if (!require('RColorBrewer')) install.packages('RColorBrewer'); library('RColorBrewer')
+
+if (!require('caret')) install.packages('caret', repos = "http://cran.us.r-project.org"); library('caret')
 ```
 
-****
+------------------------------------------------------------------------
+
 # Descripció del dataset.
-****
 
-Aquest dataset és interessant perquè ens proporciona dades complexes que ens ajudaran a poder preveure quins pacients són propensos a tenir atacs de cor. Aquest dataset ha estat extret de kaggle i és el que ens dona d'exemple la pràctica.
+------------------------------------------------------------------------
 
-Com podem veure aquest dataset ens proporciona dades interessants de 303 pacients com el dolor del pit, pressió sanguínea, colesterol i màxim de pulsacions entre d'altres. També ens proporciona dades de la saturació d'O2 en un dataset individual.
+Aquest dataset és interessant perquè ens proporciona dades complexes que ens ajudaran a poder preveure quins pacients són propensos a tenir atacs de cor. Ha estat extret de kaggle, i és el que ens dona d'exemple la pràctica.
 
-En aquesta pràctica intentarem unificar els dos datasets, netejar-los i tractarem d'estimar un model que a partir de les dades pugui preveure possibles atacs de cor.
+El dataset ens proporciona dades de **303 pacients,** com el dolor del pit, pressió sanguínea, colesterol i màxim de pulsacions, entre d'altres. També ens proporciona dades de la saturació d'O2 en un dataset individual.
 
-****
+En la pràctica intentarem unificar els dos datasets, netejar-los i tractarem d'estimar un model que a partir de les dades pugui preveure possibles atacs de cor.
+
+------------------------------------------------------------------------
+
 # Integració i selecció
-****
+
+------------------------------------------------------------------------
 
 Primerament carreguem els dos datasets.
 
-``` {r chunk1.1}
+```{r chunk1.1}
 heart_data <- read.csv("../data/heart.csv");
 o2_data <- read.csv("../data/o2Saturation.csv");
 
@@ -47,37 +80,53 @@ nrow(heart_data);
 nrow(o2_data);
 ```
 
-Un cop carregats els fitxers podem apreciar que la mida dels dos és diferent, això sumat a que no tenim un identificador de persona que ens ajudi a relacionar les dades dels dos datasets fa que no tinguem manera de saber com està relacionada la saturació o2 amb el dataset principal. Per tant hem optat per no integrar les dades del fitxer o2 per l'anàlisi.
+Un cop carregats els fitxers, podem apreciar que la seva mida és diferent, i això sumat a que no tenim un identificador de persona que ens ajudi a relacionar les dades dels dos datasets fa que no tinguem manera de saber com està relacionada la saturació o2 amb el dataset principal. Per tant, hem optat per no integrar les dades del fitxer o2 per l'anàlisi.
 
-En quant al dataset heart_data ja que no hem trobat cap camp calculat hem optat per incloure totes les dades actuals i seleccionar més endavant quines utilitzar segons l'anàlisi que volguem fer.
+En quant al dataset heart_data, ja que no hem trobat cap camp calculat, hem optat per incloure totes les dades actuals i seleccionar més endavant quines utilitzar segons l'anàlisi que volguem fer.
 
-****
+------------------------------------------------------------------------
+
 # Neteja de les dades.
-****
 
-Primerament analitzem les dades que contenen zeros o elements buits, per fer-ho seleccionem totes les variables numèriques no factorial on el zero no sigui una opció.
+------------------------------------------------------------------------
 
-Obtenim el llistat de les següents dades:
+En primer lloc, mirarem la composició del dataset:
 
-* Age. És l'edat de la persona. Hi han `r length(which(heart_data$age==0))` persones que tenen 0 anys.
-* Sex. És el sexe de la persona. Està codificat de forma factorial amb 0 i 1 segons sexe.
-* Cp. És el nivell de mal de pit. Està codificat de forma factorial de 0-3 segons dolor.
-* Trtbps. És la pressió arterial en repòs. Hi han `r length(which(heart_data$trtbps==0))` persones amb pressió arterial 0.
-* Chol. És el colesterol de la persona. Hi han `r length(which(heart_data$chol==0))` persones amb colesterol 0.
-* Fbs. És el sucre en sang. Està codificat de forma factorial, 1 si fbs>120 i 0 en cas contrari.
-* Restecg. Són els resultats electrocardiogràfics. Estan codificats de forma factorial de 0-2 segons gravetat.
-* Thalacc. És el màxim de pulsacions. Hi han `r length(which(heart_data$thalacc==0))` persones que tenen pulsació 0.
-* Exng. Ens retorna si la persona té angina induïda per exercici. Està codificat de forma factorial amb 0 en cas de que no tingui angina i 1 en cas de que tingui angina.
-* Oldpeak. És la depressió del ST induïda per l'exercici en relació amb el repòs. En aquest cas el valor pot ser 0.
-* Slp. És el pendent del segment ST de l'exercici màxim. Està codificat de forma factorial de 0-2 segons pendent.
-* Caa. És el nombre de vasos cardíacs. Està codificat de forma factorial de 0-3.
-* Thall. És el grau de talassèmia. Està codificat de forma factorial de 0-3 segons grau.
-* Output. És el diagnòstic final. Està codificat de forma factorial amb 1 si té probabilitats de tenir un atac de cor i 0 si no.
+```{r}
+str(heart_data)
+```
 
-Com podem veure no tenim cap dada que contingui 0 per falta d'informació o elements buits.
+S'obervacom el dataset conté 303 registres amb 14 atributs cadascun d'ells, els quals s'expliquen a continuació:
 
+-   **age.** És l'edat de la persona.
+-   **sex.** És el sexe de la persona. Està codificat de forma factorial amb 0 i 1 segons sexe.
+-   **cp.** És el nivell de mal de pit. Està codificat de forma factorial de 0-3 segons dolor.
+-   **trtbps.** És la pressió arterial en repòs.
+-   **chol.** És el colesterol de la persona.
+-   **fbs.** És el sucre en sang. Està codificat de forma factorial, 1 si fbs\>120 i 0 en cas contrari.
+-   **restecg.** Són els resultats electrocardiogràfics. Estan codificats de forma factorial de 0-2 segons gravetat.
+-   **thalacc.** És el màxim de pulsacions.
+-   **exng.** Ens retorna si la persona té angina induïda per exercici. Està codificat de forma factorial amb 0 en cas de que no tingui angina i 1 en cas de que tingui angina.
+-   **oldpeak.** És la depressió del ST induïda per l'exercici en relació amb el repòs. En aquest cas el valor pot ser 0.
+-   **slp.** És el pendent del segment ST de l'exercici màxim. Està codificat de forma factorial de 0-2 segons pendent.
+-   **caa.** És el nombre de vasos cardíacs. Està codificat de forma factorial de 0-3.
+-   **thall.** És el grau de talassèmia. Està codificat de forma factorial de 0-3 segons grau.
+-   **output.** És el diagnòstic final. Està codificat de forma factorial amb 1 si té probabilitats de tenir un atac de cor i 0 si no.
 
-A continuació farem un estudi dels outliers, per detectar-los creem la funció get_outliers:
+Tot seguit, analitzem les dades que contenen zeros o elements buits:
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+
+na_counts <- colSums(is.na(heart_data))
+empty_counts <- colSums(heart_data == "")
+zero_counts <- colSums(heart_data == 0)
+result <- data.frame(NAs = na_counts, BLANK = empty_counts, ZEROS = zero_counts)
+kable(result)
+```
+
+Podem veure com no hi ha cap atribut en el qual ens falti informació (és a dir, que sigui NAs o estigui en blanc). Pel que fa a la columna de zeros, ens hem de fixar en aquells atributs numèrics no factorials on el zero no sigui una opció, com és el cas de *age*, *trtbps*, *chol*, i *thalachh*, on veiem que en cap cas tenen zeros.
+
+A continuació farem un estudi dels outliers, i per detectar-los creem la funció get_outliers:
 
 ```{r chunk2.1}
 get_outliers <- function(x) {
@@ -94,7 +143,7 @@ get_outliers <- function(x) {
 }
 ```
 
-Un cop tenim la funció la utilitzem per trobar els outliers existents.
+Un cop tenim la funció, la utilitzem per trobar els outliers existents.
 
 ```{r chunk2.2}
 cp_outliers <- get_outliers(heart_data$cp);
@@ -108,24 +157,94 @@ for (i in colnames(heart_data)) {
     cat(sprintf("La columna %s té els següents outliers: ", i), outliers, "\n")
   }
 }
-
 ```
-Analitzant les dades detectades com a outliers arribem a la conclusió de que cap és un valor extrem, totes les dades entren dins la normalitat. 
 
-****
+Analitzant les dades detectades com a outliers arribem a la conclusió de que cap és un valor extrem, totes les dades entren dins la normalitat, tal com es pot comprovar a continuació:
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+
+col = c("trtbps", "chol", "thalachh", "oldpeak", "caa", "thall") 
+
+heartDataAux <- heart_data %>% select(all_of(col))
+histList <- list() 
+
+for (i in 1:ncol(heartDataAux)) {
+  col <- names(heartDataAux)[i]
+  
+  ggp <- ggplot(heartDataAux, aes_string(x = col)) +
+    geom_histogram(bins = 30, fill="green", color = "black") +
+    labs(x = col, y = "Count") +
+    ggtitle(paste("Hist. ", col))
+  
+  histList[[i]] <- ggp  # add each plot to the list
+}
+multiplot(plotlist = histList, cols = 3)
+```
+
+------------------------------------------------------------------------
+
 # Anàlisi de les dades.
-****
 
-Un dels anàlisi que podem fer és una regressió, veient que la nostra variable dependent (output) és dicotòmica utilitzarem la regressió logística enlloc de lineal.
+------------------------------------------------------------------------
 
-Per comprovar l'efectivitat del model resultant dividirem les dades en dos conjunts, un conjunt de training (80% de les dades) i un conjunt de testing (20% de les dades). A més també ens caldrà fer un cast de la variable output a factorial.
+### Selecció grups de dades
+
+En primer lloc, i de cara als models que s'aplicaran més endavant, factoritzem aquells atributs que així ho requereixen:
+
+```{r}
+# Fem el cast a factorial
+heart_data$output <- factor(heart_data$output)
+categorical_c = c("sex", "fbs", "exng", "output") 
+heart_data <- heart_data %>% mutate_at(categorical_c, factor)
+```
+
+Tot seguit, mirarem de visualitzar les relacions entre els diferents atributs desglossats segons el seu diagnòstic final (output), per veure si d'aquesta manera podem veure diferències significatives entre els dos grups:
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+
+ggpairs(heart_data[rowSums(is.na(heart_data)) == 0,], columns = c(1:12), 
+        aes(color = heart_data$output, alpha = 0.5),
+        upper = "blank",
+        axisLabels = "none")
+```
+
+Tot i que en els núvols de punts es fa difícil diferenciar entre els dos grups, en els histogrames sí que se sembla apreciar diferències significatives entre els dos grups amb relació a diversos atributs, tals com l'edat, el nivell de mal al pit (*cp*), els resultats electrocardiogràfics (*restecg*), o en el nombre de vasos cardíacs (*caa*).
+
+### Comprovació normalitat de la variància.
+
+Amb l'objectiu de verificar la suposició de la normalitat utilitzarem el test de Shapiro-Wilk en cadascun dels atributs del dataset. Bàsicament, el que fa és assumir com a hipòtesi nul·la que la població està distribuïda normalment, així que si el p-valor dels atributs és menor que el nivell de significació (0,05) aleshores podrem concloure que les dades no compten amb una distribució normal.
+
+```{r}
+# Select only the numeric columns from heart_data
+numeric_cols <- heart_data[, sapply(heart_data, is.numeric)]
+
+# Loop through each numeric column
+for (col_name in names(numeric_cols)) {
+  col <- numeric_cols[[col_name]]
+  
+  # Perform Shapiro-Wilk test
+  result <- shapiro.test(col)
+  
+  # Extract test statistics
+  test_stats <- paste("W =", result$statistic, "p-value =", result$p.value)
+  
+  # Print the column name and test statistics
+  cat("Column:", col_name, "\n")
+  cat(test_stats, "\n\n")
+}
+```
+
+Veiem com en tots els casos es rebutja la hipòtesi de normalitat, ja que tots els atributs presenten un p-value inferior a 0,05. Encara més, l'únic atribut que s'acosta mínimament a la normalitat és l'edat. Podríem normalitzar les dades abans d'aplicar els diferents models, però s'ha decidit que fer-ho no serà pràctic, ja que dificultarà la comprensió a l'hora de treballar amb les dades i el resultat serà el mateix.
+
+### Model de regressió
+
+El primer dels anàlisis que farem una regressió. Com la nostra variable dependent (*output*) és dicotòmica, utilitzarem la regressió logística enlloc de lineal.
+
+Per comprovar l'efectivitat del model resultant dividirem les dades en dos conjunts, un conjunt de training (80% de les dades) i un conjunt de testing (20% de les dades).
 
 ```{r chunk3.1}
 # Seleccionem una seed per poder reproduir els conjunts
 set.seed(15)
-
-# Fem el cast a factorial
-heart_data$output <- factor(heart_data$output)
 
 # Creem els conjunts de training i de test
 train_index <- createDataPartition(y=heart_data$output, p=0.8, list=FALSE)
@@ -133,8 +252,17 @@ training <- heart_data[train_index, ]
 testing <- heart_data[-train_index, ]
 ```
 
-Un cop tenim els conjunts definits i la variable output com a factorial creem el model amb les dades de training. 
-Després d'estar estudiant les variables hem arribat a la conclusió que les millors variables independents seran sex, cp, exng, oldpeak, slp, caa i thall.
+Verificarem les dades per veure que la proporció de persones diagnosticades és més o menys la mateixa tan al subset d'entrenament com al de testeig:
+
+```{r}
+cat("TRAIN_Y [%]\n")
+prop.table(summary(training$output))
+
+cat("\nTEST_Y [%]\n")
+prop.table(summary(testing$output))
+```
+
+Un cop tenim els conjunts definits i la variable *output* com a factorial, creem el model amb les dades de training. Després d'estudiar les variables, s'ha arribat a la conclusió que les millors variables independents seran *sex*, *cp*, *exng*, *oldpeak*, *slp*, *caa* i *thall*.
 
 ```{r chunk2.2.1}
 model <- glm(formula = output~sex+cp+exng+oldpeak+slp+caa+thall,
@@ -144,9 +272,9 @@ model <- glm(formula = output~sex+cp+exng+oldpeak+slp+caa+thall,
 summary(model)
 ```
 
-Veiem amb la informació del model com els valors p(Pr(>|z|)) són tots inferiors a 0.05, mostrant-nos així que totes són significativament estadístiques i aporten al model.
+Veiem amb la informació del model com els valors $p(Pr(>|z|))$ són tots inferiors a 0.05, mostrant-nos així que totes són significativament estadístiques i aporten al model.
 
-A continuació fem una matriu de confusió amb el conjunt de testing.
+A continuació, fem una matriu de confusió amb el conjunt de testing.
 
 ```{r chunk2.4.1}
 # Obtenim els valors predits
@@ -161,7 +289,128 @@ confusion_matrix <- confusionMatrix(predicted_values, real_values)
 confusion_matrix
 ```
 
-Veiem com aquest model ha encertat un 83.33% de les dades de testing i podem dir amb un 95% de certesa que la precisió d'aquest model estarà entre un 71.48% i 91.71%.
+El model ha encertat un 83,33% de les dades de testing, i podem dir amb un 95% de certesa que la precisió d'aquest model estarà entre un 71,48% i 91.71%.
 
-També tenim altres dades com la sensibilitat que ens mostra que s'ha encertat un 77.78% dels negatius o la especificitat que ens mostra que s'ha encertat un 87.88% dels positius (Entenent negatiu com a output 0 i positiu com a output 1).
+També tenim altres dades com la sensibilitat que ens mostra que s'ha encertat un 77,78% dels negatius, o la especificitat que ens mostra que s'ha encertat un 87,88% dels positius (entenent negatiu com a output 0 i positiu com a output 1).
 
+### Arbre de decisió.
+
+Un cop creats els subsets de dades, podem generar un arbre de decisió que ens permetrà predir si el pacient serà diagnosticat o no gràcies al package *rpart*:
+
+```{r}
+model_r <- rpart(output ~ ., # default vs all other columns
+               data = heart_data) # ds
+
+rules <- rpart.rules(model_r)
+print(rules)
+```
+
+A continuació podem visualitzar les regles, el que facilita molt la comprensió del model:
+
+```{r}
+fancyRpartPlot(model_r, type = 5, space = 0, caption = NULL)
+```
+
+La forma correcta de llegir cada regla és, mirant la primera de totes, que
+
+-   si el pacient presenta un *cp* (nivell de mal al pit) inferior a 0,5
+
+-   i té un *caa* (nombre de vasos cardíacs) major o igual a 0,5
+
+aleshores, podem afirmar amb un 94% de confiança que el pacient no serà diagnosticat (*output*=0). El 26% és el percentatge de les dades de training van a parar a aquest node.
+
+El tercer node és una regla que ens indica una predicció positiva, però és llegiria de forma similar:
+
+-   si el pacient presenta un *cp* (nivell de mal al pit) inferior a 0,5
+
+-   té un *caa* (nombre de vasos cardíacs) menor a 0,5
+
+-   i té un *thall* (grau de talassèmia) menor a 2,5
+
+aleshores, podem afirmar amb un 76% de confiança que el pacient sí serà diagnosticat (*output*=1). El 13% de les dades de training van a parar a aquest node.
+
+A continuació tenim la matriu de confusió de l'arbre:
+
+```{r}
+# Obtenim els valors predits
+predicted_values <- predict(model_r, testing, type = "class")
+predicted_values <- factor(predicted_values, levels = c("0", "1"))
+
+# Recolectem els valors reals
+real_values <- factor(testing$output, levels = c("0", "1"))
+
+# Calculem la matriu de confusió
+confusion_matrix <- confusionMatrix(predicted_values, real_values)
+confusion_matrix
+```
+
+Veiem com el model ha encertat el 83,33% dels registres, el mateix percentatge que el model de regressió de l'apartat anterior. Ara bé, en aquest l'especificitat ens indica que hem encertat el 93,94% dels *outputs* positius (és a dir, de diagnòstics positius), el que representa una millora respecte al 87,88% del model anterior.
+
+Finalment, podem utilitzar randomForest per veure quines són les variables amb més pes dins de l'arbre de decisió, i per tant, les dades més rellevants pel problema que volem resoldre.
+
+```{r, warning=FALSE}
+rf <-  randomForest(output ~ ., data = training, ntree = 50)
+X <- training[which(names(training) != "output")]
+predictor <- Predictor$new(rf, data = X, y = training$output) 
+imp <- FeatureImp$new(predictor, loss = "ce") # ce = obj. de classific.
+plot(imp)
+```
+
+### Model de clustering.
+
+El primer que farem abans d'aplicar el model de clustering és excloure la columna output del dataset, ja que al tractar-se d'un model no supervisat representa que d'entrada no sabem quants grups hi ha ni com estan repartits:
+
+```{r}
+heartDataAux <- heart_data[1:13] # We exclude the output column
+heartDataAux <- as.data.frame(lapply(heartDataAux, as.numeric))
+```
+
+Per determinar el nombre de clústers utilitzarem tan el criteri de *Calinski-Harabasz* com el de Silhouette, per veure si marquen el mateix nombre de clústers:
+
+```{r}
+fit_ch  <- kmeansruns(heartDataAux, krange = 1:10, criterion = "ch") 
+fit_asw <- kmeansruns(heartDataAux, krange = 1:10, criterion = "asw") 
+
+plot(1:10,fit_ch$crit,type="o",col="blue",pch=0,xlab="Number of clusters",
+     ylab="Calinski-Harabasz criteria")
+plot(1:10,fit_asw$crit,type="o",col="red",pch=0,xlab="Number of clusters",
+     ylab="Average silhouette criteria")
+```
+
+Veiem com en ambdós casos tenim que el nombre òptim de clústers és 2, el que a més encaixa amb la informació que nosaltres sabem (el pacient és diagnosticat o no és diagnosticat). Per tant, a continuació aplicarem el model kmeans amb 2 clústers en total:
+
+```{r}
+heart2clusters <- kmeans(heartDataAux, 2)
+```
+
+Un cop aplicat el model veiem com el dataset auxiliar s'ha dividit en dos grups, els quals s'haurien de correspondre amb la columna *output* eliminada inicialment.
+
+```{r}
+plot(heartDataAux[, c(1, 4)], col=as.factor(heart2clusters$cluster), main="Exemple de partició")
+```
+
+Podem veure la partició en relació a alguns dels atributs més importants:
+
+```{r}
+plot(heartDataAux[, c(1, 3, 12:13, 10)], col=heart2clusters$cluster, main="k-means classification (k=2)")
+polygon(heartDataAux[, c(1, 3, 12:13, 10)])
+```
+
+I comparar-la amb la partició real gràcies a que coneixem els valors reals de *output*:
+
+```{r}
+plot(heart_data[, c(1, 3, 12:13, 10)], col=heart_data$output, main="real partition")
+polygon(heart_data[, c(1, 3, 12:13, 10)])
+```
+
+En aquest cas, no té gaire sentit calcular la precisió del model, ja que els models de clustering estan pensats per agrupar les dades gràcies a una sèrie de tècniques, però sense que nosaltres sapiguem a priori quants n'hi haurà. En aquest cas, nosaltres sabíem que teníem dos grups diferenciats (els que són diagnosticats i els que no), i per tant els grups trobats per k-means s'hi haurien de semblar, però això no vol dir ni molt menys que aquest model tingui cap validesa per diagnosticar.
+
+# Resolució del problema i conclusions.
+
+El nostre objectiu era poder predir el diagnòstic final d'un pacient a partir de la resta de variables. Per aquesta raó s'han fet dos models predictius, un de regressió logística i un arbre de decisió, els quals han donat exactament la mateixa precisió (un 83,33%).\
+\
+Tot i això, l'arbre ha presentat una major sensitivitat que el model de regressió (un 93,94% en contra d'un 87,88%), i per això podem afirmar que és millor model. S'ha de tenir present que en aquest cas ens interessa predir el màxim de positius possibles, per així poder tractar al pacient en conseqüència, tot i l'increment que això suposi de falsos positius, els quals en aquest cas tampoc "no farien mal".\
+\
+Pel que fa a la precisió, segurament s'hauria pogut millorar provant altres algorismes similars per veure quin s'adapta millor al problema, però tal com està ens sembla prou encertada. Segurament també es podria millorar provant altres percentatges en la partició de dades d'entrenament, o inclús jugant amb mètodes de validació creuada com el k-fold.\
+\
+Finalment, gràcies a la llibreria *randomForest*, hem pogut determinar que els atributs amb més pes a l'hora de diagnosticar al pacient són el *cp* (nivell de mal de pit), el caa (nombre de vasos cardíacs), el *thall* (grau de talassèmia), l'*age* i l'*oldpeak* (la depressió del ST induïda per l'exercici en relació amb el repòs).
