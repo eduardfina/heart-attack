@@ -291,7 +291,7 @@ confusion_matrix
 
 El model ha encertat un 83,33% de les dades de testing, i podem dir amb un 95% de certesa que la precisió d'aquest model estarà entre un 71,48% i 91.71%.
 
-També tenim altres dades com la sensibilitat que ens mostra que s'ha encertat un 77,78% dels negatius, o la especificitat que ens mostra que s'ha encertat un 87,88% dels positius (entenent negatiu com a output 0 i positiu com a output 1).
+També tenim altres dades com la sensibilitat que ens mostra que s'ha encertat un 77,78% dels positius, o la especificitat que ens mostra que s'ha encertat un 87,88% dels negatius (entenent negatiu com a output 0 i positiu com a output 1).
 
 ### Arbre de decisió.
 
@@ -344,7 +344,7 @@ confusion_matrix <- confusionMatrix(predicted_values, real_values)
 confusion_matrix
 ```
 
-Veiem com el model ha encertat el 83,33% dels registres, el mateix percentatge que el model de regressió de l'apartat anterior. Ara bé, en aquest l'especificitat ens indica que hem encertat el 93,94% dels *outputs* positius (és a dir, de diagnòstics positius), el que representa una millora respecte al 87,88% del model anterior.
+Veiem com el model ha encertat el 85% dels registres, el mateix percentatge que el model de regressió de l'apartat anterior. Ara bé, en aquest cas la sensibilitat ens indica que hem encertat el 74,07% dels *outputs* positius (és a dir, de diagnòstics positius), el que representa un empitjorament respecte al 77,78% del model anterior.
 
 Finalment, podem utilitzar randomForest per veure quines són les variables amb més pes dins de l'arbre de decisió, i per tant, les dades més rellevants pel problema que volem resoldre.
 
@@ -407,9 +407,9 @@ En aquest cas, no té gaire sentit calcular la precisió del model, ja que els m
 
 # Resolució del problema i conclusions.
 
-El nostre objectiu era poder predir el diagnòstic final d'un pacient a partir de la resta de variables. Per aquesta raó s'han fet dos models predictius, un de regressió logística i un arbre de decisió, els quals han donat exactament la mateixa precisió (un 83,33%).\
+El nostre objectiu era poder predir el diagnòstic final d'un pacient a partir de la resta de variables. Per aquesta raó s'han fet dos models predictius, un de regressió logística i un arbre de decisió, els quals han donat una precisió molt similar.\
 \
-Tot i això, l'arbre ha presentat una major sensitivitat que el model de regressió (un 93,94% en contra d'un 87,88%), i per això podem afirmar que és millor model. S'ha de tenir present que en aquest cas ens interessa predir el màxim de positius possibles, per així poder tractar al pacient en conseqüència, tot i l'increment que això suposi de falsos positius, els quals en aquest cas tampoc "no farien mal".\
+Tot i això, el model de regressió ha presentat una major sensibilitat que l'arbre (un 77,78% en contra d'un 74,07%), i per això podem afirmar que és millor model. S'ha de tenir present que en aquest cas ens interessa predir el màxim de positius possibles, per així poder tractar al pacient en conseqüència, tot i l'increment que això suposi de falsos positius, els quals en aquest cas tampoc "no farien mal".\
 \
 Pel que fa a la precisió, segurament s'hauria pogut millorar provant altres algorismes similars per veure quin s'adapta millor al problema, però tal com està ens sembla prou encertada. Segurament també es podria millorar provant altres percentatges en la partició de dades d'entrenament, o inclús jugant amb mètodes de validació creuada com el k-fold.\
 \

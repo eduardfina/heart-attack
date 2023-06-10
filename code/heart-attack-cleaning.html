@@ -881,8 +881,8 @@ confusion_matrix</code></pre>
 amb un 95% de certesa que la precisió d’aquest model estarà entre un
 71,48% i 91.71%.</p>
 <p>També tenim altres dades com la sensibilitat que ens mostra que s’ha
-encertat un 77,78% dels negatius, o la especificitat que ens mostra que
-s’ha encertat un 87,88% dels positius (entenent negatiu com a output 0 i
+encertat un 77,78% dels positius, o la especificitat que ens mostra que
+s’ha encertat un 87,88% dels negatius (entenent negatiu com a output 0 i
 positiu com a output 1).</p>
 </div>
 <div id="arbre-de-decisió." class="section level3" number="4.0.4">
@@ -971,11 +971,11 @@ confusion_matrix</code></pre>
 ##                                          
 ##        &#39;Positive&#39; Class : 0              
 ## </code></pre>
-<p>Veiem com el model ha encertat el 83,33% dels registres, el mateix
+<p>Veiem com el model ha encertat el 85% dels registres, el mateix
 percentatge que el model de regressió de l’apartat anterior. Ara bé, en
-aquest l’especificitat ens indica que hem encertat el 93,94% dels
+aquest cas la sensibilitat ens indica que hem encertat el 74,07% dels
 <em>outputs</em> positius (és a dir, de diagnòstics positius), el que
-representa una millora respecte al 87,88% del model anterior.</p>
+representa un empitjorament respecte al 77,78% del model anterior.</p>
 <p>Finalment, podem utilitzar randomForest per veure quines són les
 variables amb més pes dins de l’arbre de decisió, i per tant, les dades
 més rellevants pel problema que volem resoldre.</p>
@@ -1042,10 +1042,10 @@ i conclusions.</h1>
 <p>El nostre objectiu era poder predir el diagnòstic final d’un pacient
 a partir de la resta de variables. Per aquesta raó s’han fet dos models
 predictius, un de regressió logística i un arbre de decisió, els quals
-han donat exactament la mateixa precisió (un 83,33%).<br />
+han donat una precisió molt similar.<br />
 <br />
-Tot i això, l’arbre ha presentat una major sensitivitat que el model de
-regressió (un 93,94% en contra d’un 87,88%), i per això podem afirmar
+Tot i això, el model de regressió ha presentat una major sensibilitat
+que l’arbre (un 77,78% en contra d’un 74,07%), i per això podem afirmar
 que és millor model. S’ha de tenir present que en aquest cas ens
 interessa predir el màxim de positius possibles, per així poder tractar
 al pacient en conseqüència, tot i l’increment que això suposi de falsos
