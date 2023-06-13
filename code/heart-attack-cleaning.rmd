@@ -212,7 +212,7 @@ Tot i que en els núvols de punts es fa difícil diferenciar entre els dos grups
 
 ### Comprovació normalitat de la variància.
 
-Amb l'objectiu de verificar la suposició de la normalitat utilitzarem el test de Shapiro-Wilk en cadascun dels atributs del dataset. Bàsicament, el que fa és assumir com a hipòtesi nul·la que la població està distribuïda normalment, així que si el p-valor dels atributs és menor que el nivell de significació (0,05) aleshores podrem concloure que les dades no compten amb una distribució normal.
+Amb l'objectiu de verificar la suposició de la normalitat utilitzarem el test de Shapiro-Wilk en cadascun dels atributs del dataset. Bàsicament, el que fa és assumir com a hipòtesi nul·la que la població està distribuïda normalment, així que si el p-valor dels atributs és major que el nivell de significació (0,05) aleshores podrem concloure que les dades no compten amb una distribució normal.
 
 ```{r}
 # Select only the numeric columns from heart_data
@@ -234,7 +234,7 @@ for (col_name in names(numeric_cols)) {
 }
 ```
 
-Veiem com en tots els casos es rebutja la hipòtesi de normalitat, ja que tots els atributs presenten un p-value inferior a 0,05. Encara més, l'únic atribut que s'acosta mínimament a la normalitat és l'edat. Podríem normalitzar les dades abans d'aplicar els diferents models, però s'ha decidit que fer-ho no serà pràctic, ja que dificultarà la comprensió a l'hora de treballar amb les dades i el resultat serà el mateix.
+Veiem com en tots els casos es rebutja la hipòtesi alternativa, ja que tots els atributs presenten un p-value inferior a 0,05. Encara més, l'únic atribut que s'acosta mínimament a la alternativa és l'edat. Podríem normalitzar les dades abans d'aplicar els diferents models, però s'ha decidit que fer-ho no serà pràctic, ja que dificultarà la comprensió a l'hora de treballar amb les dades i el resultat serà el mateix.
 
 ### Model de regressió
 
