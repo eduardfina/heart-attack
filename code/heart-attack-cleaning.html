@@ -710,7 +710,7 @@ normalitat de la variància.</h3>
 el test de Shapiro-Wilk en cadascun dels atributs del dataset.
 Bàsicament, el que fa és assumir com a hipòtesi nul·la que la població
 està distribuïda normalment, així que si el p-valor dels atributs és
-menor que el nivell de significació (0,05) aleshores podrem concloure
+major que el nivell de significació (0,05) aleshores podrem concloure
 que les dades no compten amb una distribució normal.</p>
 <pre class="r"><code># Select only the numeric columns from heart_data
 numeric_cols &lt;- heart_data[, sapply(heart_data, is.numeric)]
@@ -758,9 +758,9 @@ for (col_name in names(numeric_cols)) {
 ## 
 ## Column: thall 
 ## W = 0.750581764380794 p-value = 4.34425302333555e-21</code></pre>
-<p>Veiem com en tots els casos es rebutja la hipòtesi de normalitat, ja
+<p>Veiem com en tots els casos es rebutja la hipòtesi alternativa, ja
 que tots els atributs presenten un p-value inferior a 0,05. Encara més,
-l’únic atribut que s’acosta mínimament a la normalitat és l’edat.
+l’únic atribut que s’acosta mínimament a la alternativa és l’edat.
 Podríem normalitzar les dades abans d’aplicar els diferents models, però
 s’ha decidit que fer-ho no serà pràctic, ja que dificultarà la
 comprensió a l’hora de treballar amb les dades i el resultat serà el
